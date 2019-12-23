@@ -96,7 +96,22 @@ DB_DATA = json.loads(DB_DATA)
 #         'PASSWORD': DB_DATA.get('password', 'sydpro123'),
 #         'HOST': DB_DATA.get('host', '127.0.0.1'),
 #         'PORT': DB_DATA.get('port', 5432),
+#         'OPTIONS': {'sslmode': 'require'},
 #     }
+# }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': os.getenv('ENGINE', "django.db.backends.mysql"),
+#         'NAME': os.getenv('NAME', "student_marks"),
+#         'USER': os.getenv('USER', "wasdkiller"),
+#         'PASSWORD': os.getenv('PASSWORD', "wasdkiller"),
+#         'HOST': os.getenv('HOST', "127.0.0.1"),
+#         'PORT': os.getenv('PORT', "3306"),
+#         'OPTIONS': {
+#             'connect_timeout': 5,
+#         }
+#     },
 # }
 
 

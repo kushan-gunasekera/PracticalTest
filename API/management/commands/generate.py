@@ -1,6 +1,7 @@
 from multiprocessing import Pool, cpu_count
 import os
 import random
+import time
 
 from django.core.management.base import BaseCommand
 from API.models import StudentMarks, SemesterDetails, StudentDetails
@@ -17,11 +18,16 @@ class Student:
                 'student_name': f'student-{student_id}'
             }
 
-            student_obj = StudentDetails.objects.filter(**req)
-            if not student_obj.exists():
-                student_obj = StudentDetails.objects.create(**req).save()
-            student_obj = StudentDetails.objects.get_or_create(**req)
-            self.student, _ = student_obj
+            while not StudentDetails.objects.filter(**req).exists():
+                try:
+                    time.sleep(2)
+                    StudentDetails.objects.create(**req).save()
+                    time.sleep(2)
+                except Exception as e:
+                    print(f'not student_obj.exists() | {os.getpid()} | {os.getppid()} -> ERROR -> {e}')
+                    continue
+            self.student = StudentDetails.objects.filter(**req).first()
+            # self.student = student_obj
 
             req = {
                 'semester': semester,
@@ -29,17 +35,21 @@ class Student:
                 'calendar_year': year
             }
 
-            semester_obj = SemesterDetails.objects.filter(**req)
-            if not semester_obj.exists():
-                SemesterDetails.objects.create(**req).save()
-            semester_obj = SemesterDetails.objects.get_or_create(**req)
-            self.semester, _ = semester_obj
+            while not SemesterDetails.objects.filter(**req).exists():
+                try:
+                    time.sleep(2)
+                    SemesterDetails.objects.create(**req).save()
+                    time.sleep(2)
+                except Exception as e:
+                    print(f'not semester_obj.exists() | {os.getpid()} | {os.getppid()} -> ERROR -> {e}')
+                    continue
+            self.semester = SemesterDetails.objects.filter(**req).first()
+            # self.semester = semester_obj
         except Exception as e:
-            print(e)
-            print(f'__init__ | {os.getpid()} | {os.getppid()} -> ERROR')
+            print(f'__init__ | {os.getpid()} | {os.getppid()} -> ERROR -> {e}')
 
     def generate_semester_data(self):
-        # print(f'generate_semester_data | {os.getpid()} | {os.getppid()} -> START')
+        print(f'generate_semester_data | {os.getpid()} | {os.getppid()} -> START')
         try:
             sem = self.semester.semester
             return [
@@ -49,8 +59,7 @@ class Student:
                  f"{self.student.id})")
                 for subject_id in range(1, 25001)]
         except Exception as e:
-            print(e)
-            print(f'generate_semester_data | {os.getpid()} | {os.getppid()} -> ERROR')
+            print(f'generate_semester_data | {os.getpid()} | {os.getppid()} -> ERROR -> {e}')
 
 
 class Command(BaseCommand):
@@ -70,20 +79,21 @@ class Command(BaseCommand):
             sql = "INSERT INTO API_studentmarks (subject_name, mark, semester_id, student_id) VALUES "
             val = ", ".join(full_obj_list)
             with closing(connection.cursor()) as cursor:
+                print(f'{os.getpid()} | data inserting -> {student_id}')
                 cursor.execute(f'{sql}{val}')
+                print(f'{os.getpid()} | close connection -> {student_id}')
             return full_obj_list
         except Exception as e:
-            print(e)
-            print(f'handle_student | {os.getpid()} | {os.getppid()} -> ERROR')
+            print(f'handle_student | {os.getpid()} | {os.getppid()} -> ERROR -> {e}')
 
     def handle(self, *args, **kwargs):
         StudentMarks.objects.all().delete()
         SemesterDetails.objects.all().delete()
         StudentDetails.objects.all().delete()
-        student_list = [i for i in range(1, 20)]
+        student_list = [i for i in range(1, 4)]
         with Pool(cpu_count()) as p:
             all_data = p.map(self.handle_student, student_list)
-            all_data = [x for b in all_data for x in b]
+            # all_data = [x for b in all_data for x in b]
             # sql = "INSERT INTO API_studentmarks (subject_name, mark, semester_id, student_id) VALUES "
             # val = ", ".join(all_data[:5000])
             # with closing(connection.cursor()) as cursor:
